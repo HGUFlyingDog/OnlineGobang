@@ -2,6 +2,7 @@
 #include "logger.hpp"
 #include <mysql/mysql.h>
 #include <memory>
+#include <jsoncpp/json/json.h>
 
 struct MySQLDeleter;
 
@@ -54,4 +55,27 @@ private:
 private:
     // 析构的时候会调用 MySQLDeleter{}(m_mysql.get());
     std::unique_ptr<MYSQL, MySQLDeleter> m_mysql;
+};
+
+class Json_Util
+{
+public:
+    static std::string serializeJson(const Json::Value &jsonValue)
+    {
+        Json::StreamWriterBuilder writer;
+        return Json::writeString(writer, jsonValue);
+    }
+
+    static Json::Value deserializeJson(const std::string &jsonString)
+    {
+        Json::Value root;
+        Json::Reader reader;
+        if (!reader.parse(jsonString, root))
+        {
+            throw std::runtime_error("Failed to parse JSON: " + reader.getFormattedErrorMessages());
+        }
+        return root;
+    }
+
+private:
 };
