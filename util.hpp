@@ -3,6 +3,7 @@
 #include <mysql/mysql.h>
 #include <memory>
 #include <jsoncpp/json/json.h>
+#include <vector>
 
 struct MySQLDeleter;
 
@@ -76,6 +77,35 @@ public:
         }
         return root;
     }
+};
 
-private:
+class string_Util
+{
+public:
+    static std::vector<std::string> split(const std::string &str, const std::string &sep)
+    {
+        std::vector<std::string> result;
+        size_t start = 0;
+        size_t end = str.find(sep);
+
+        while (start < str.length())
+        {
+            // 没找到
+            if (end == std::string::npos)
+            {
+                result.push_back(str.substr(start));
+                break;
+            }
+            if (end == start)
+            {
+                start = end + sep.length();
+                continue; // 避免空字符串
+            }
+            result.push_back(str.substr(start, end - start));
+            start = end + sep.length();
+            end = str.find(sep, start);
+        }
+
+        return result;
+    }
 };
