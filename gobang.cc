@@ -44,7 +44,13 @@ void stringTest()
     }
 }
 
+void fileTest()
+{
+    std::string filePath = "./makefile";
+    std::cout << file_Util::readFile(filePath) << std::endl;
+}
+
 int main()
 {
-    stringTest();
+    fileTest();
 }

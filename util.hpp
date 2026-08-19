@@ -4,6 +4,7 @@
 #include <memory>
 #include <jsoncpp/json/json.h>
 #include <vector>
+#include <fstream>
 
 struct MySQLDeleter;
 
@@ -107,5 +108,50 @@ public:
         }
 
         return result;
+    }
+};
+
+/// @brief 读取HTML文件返回给客户端,例如注册页面 登录页面
+class file_Util
+{
+public:
+    static std::string readFile(const std::string &fileName)
+    {
+        // 打开文件
+        std::ifstream ifs(fileName, std::ios::binary); // 使用二进制读取文件可以避免读取文本文件时对一些数据进行错误的处理
+        // 获取文件大小 把文件指针放到文件的末尾 然后获取相对于起始位置的偏移量
+        size_t fileSize;
+        if (ifs.is_open())
+        {
+            // seekg(off, dir) 的作用就是：以 dir 指定的位置为基准，将读取指针移动 off 个字节
+            ifs.seekg(0, std::ios::end);
+            fileSize = ifs.tellg();
+            std::cout << "File size: " << fileSize << " bytes" << std::endl;
+        }
+        else
+        {
+            ERR_LOG("Failed to open file: %s", fileName.c_str());
+            ifs.close();
+            return "";
+        }
+
+        ifs.seekg(0, std::ios::beg); // 将文件指针移动到文件开头
+
+        std::string strRet;
+        strRet.resize(fileSize);
+        ifs.read(&strRet[0], fileSize);
+        if (ifs.good())
+        {
+            INFO_LOG("File read successfully: %s", fileName.c_str());
+        }
+        else
+        {
+            ERR_LOG("Failed to read file: %s", fileName.c_str());
+            ifs.close();
+            return "";
+        }
+
+        ifs.close();
+        return strRet;
     }
 };
