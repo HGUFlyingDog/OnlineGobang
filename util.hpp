@@ -72,7 +72,7 @@ public:
     static std::string serializeJson(const Json::Value &jsonValue)
     {
         Json::StreamWriterBuilder writer;
-        return Json::writeString(writer, jsonValue);
+        return Json::writeString(writer, jsonValue) + "\n"; // 添加换行符
     }
 
     static Json::Value deserializeJson(const std::string &jsonString)
