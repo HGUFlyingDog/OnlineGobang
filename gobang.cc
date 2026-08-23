@@ -1,5 +1,6 @@
 #include "logger.hpp"
 #include "util.hpp"
+#include "db.hpp"
 
 void mysqlTest()
 {
@@ -50,7 +51,27 @@ void fileTest()
     std::cout << file_Util::readFile(filePath) << std::endl;
 }
 
+void loginTest()
+{
+    user_table user;
+    Json::Value userInfo;
+    userInfo["username"] = "zhangsan";
+    userInfo["password"] = "password123";
+    // user.insertUser(userInfo);
+
+    user.select_byUsername("zhangsan", userInfo);
+
+    std::cout << Json_Util::serializeJson(userInfo) ;
+    user.loginUser(userInfo);
+
+    user.win(1);
+    // user.lose(1);
+
+    user.select_byUsername("zhangsan", userInfo);
+    std::cout << Json_Util::serializeJson(userInfo);
+}
+
 int main()
 {
-    fileTest();
+    loginTest();
 }
