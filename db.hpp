@@ -132,7 +132,7 @@ public:
         {
             std::unique_lock<std::mutex> lock(m_mutex);
             m_mysql.executeQuery("select id,username,score,total_count,win_count from user where id='" + std::to_string(id) + "'");
-            INFO_LOG("select id,username,score,total_count,win_count from user where id= %d", id);
+            INFO_LOG("select id,username,score,total_count,win_count from user where id= %ld", id);
             res = m_mysql.get_mysql_store_result();
         }
 
