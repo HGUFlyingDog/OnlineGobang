@@ -1,6 +1,7 @@
 #include "logger.hpp"
 #include "util.hpp"
 #include "db.hpp"
+#include "onlineManager.hpp"
 
 void mysqlTest()
 {
@@ -61,7 +62,7 @@ void loginTest()
 
     user.select_byUsername("zhangsan", userInfo);
 
-    std::cout << Json_Util::serializeJson(userInfo) ;
+    std::cout << Json_Util::serializeJson(userInfo);
     user.loginUser(userInfo);
 
     user.win(1);
@@ -71,7 +72,20 @@ void loginTest()
     std::cout << Json_Util::serializeJson(userInfo);
 }
 
+void onlineTest()
+{
+    online_manager om;
+    webSocketServer::connection_ptr wsServer;
+    om.enterGameRoom(10086, wsServer);
+    std::cout << om.isInGameHall(10086) << std::endl;
+    std::cout << om.isInGameRoom(10086) << std::endl;
+
+    om.exitGameRoom(10086);
+    std::cout << om.isInGameHall(10086) << std::endl;
+    std::cout << om.isInGameRoom(10086) << std::endl;
+}
+
 int main()
 {
-    loginTest();
+    onlineTest();
 }
