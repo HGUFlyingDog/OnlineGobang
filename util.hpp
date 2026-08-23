@@ -17,18 +17,25 @@ public:
         return instance;
     }
 
-    void executeQuery(const std::string &query)
+    bool executeQuery(const std::string &query)
     {
         if (mysql_query(m_mysql.get(), query.c_str()))
         {
-            throw std::runtime_error("mysql_query failed: " + std::string(mysql_error(m_mysql.get())));
+            ERR_LOG("MySQL query failed: %s", query.c_str());
+            std::cout << "MySQL query failed: " << mysql_error(m_mysql.get()) << std::endl;
         }
+        return true;
     }
 
     MYSQL *getConnection()
     {
         return m_mysql.get();
     }
+
+    MYSQL_RES *get_mysql_store_result()
+    {
+        return mysql_store_result(m_mysql.get());
+    };
 
 private:
     MySQL_Util() : m_mysql(mysql_init(nullptr)) // 初始化数据库
