@@ -11,7 +11,7 @@ enum roomStatus
     GameFinshed,   // 游戏结束
 };
 
-const int kBoardRaw = 15;
+const int kBoardRow = 15;
 const int kBoardCol = 15;
 
 const int kWhiteChess = 1;
@@ -26,7 +26,7 @@ public:
           m_nRoomID(nRoomID), m_eStatus(roomStatus::GameStart), m_nPlayerCount(0),
           m_ptrUserTable(ptrUserTable),
           m_ptrOnlineManager(ptrOnlineManager),
-          m_vBoard(kBoardRaw, std::vector<int>(kBoardCol, 0))
+          m_vBoard(kBoardRow, std::vector<int>(kBoardCol, 0))
     {
         INFO_LOG("%lu 房间创建成功!", m_nRoomID);
     }
@@ -50,7 +50,7 @@ public:
             return resp;
         }
         resp["room_id"] = roomID;
-        
+
         // 2. 判断是否有玩家掉线 ,需要下棋位置的回显 所以需要传回来下棋的位置
         int nChessRow = Jreq["row"].asInt64();
         int nChessCol = Jreq["col"].asInt64();
@@ -76,7 +76,7 @@ public:
         }
         // 3. 判断下棋的位置是否合法
 
-        if (nChessRow > kBoardRaw && nChessCol > kBoardCol)
+        if (nChessRow > kBoardRow && nChessCol > kBoardCol)
         {
             resp["opType"] = "putChess";
             resp["result"] = false;
@@ -139,7 +139,34 @@ public:
         }
     }
 
-    Json::Value handleChat(Json::Value &Jreq);
+    Json::Value handleChat(Json::Value &Jreq)
+    {
+        // 检测房间的ID是否一致
+        Json::Value JResp = Jreq;
+        uint64_t roomID = JResp["room_id"].asUInt64();
+
+        if (roomID != m_nRoomID)
+        {
+            JResp["opType"] = "putChess";
+            JResp["result"] = false;
+            JResp["reason"] = "房间号不匹配,当前房间号为" + std::to_string(m_nRoomID) + "传入的房间号为" + std::to_string(roomID);
+            return JResp;
+        }
+        // 关键字屏蔽
+        std::string strMsg = Jreq["message"].asString();
+        int pos = strMsg.find("敏感词");
+        if (pos != std::string::npos)
+        {
+            std::cout << "敏感词屏蔽:" << strMsg << std::endl;
+            JResp["result"] = false;
+            JResp["reason"] = "消息中包含敏感词";
+            return JResp;
+        }
+
+        // 广播消息
+        JResp["result"] = true;
+        return JResp;
+    }
     Json::Value handleExit(uint64_t uid);
     Json::Value handleRequest(Json::Value &Jreq);
 
@@ -210,8 +237,48 @@ public:
     }
 
 private:
+    bool checkFiveChess(int nRow, int nCol, int nRowOffset, int nColOffset)
+    {
+        // AI: 此函数的cout输出为AI自动补全生成
+
+        int nColor = m_vBoard[nRow][nCol];
+        std::cout << "nColor:" << nColor << std::endl;
+        int nCount = 1;
+
+        int nCurRow = nRow + nRowOffset;
+        int nCurCol = nCol + nColOffset;
+        while (nCurRow <= kBoardRow && nCurCol <= kBoardCol &&
+               m_vBoard[nRow][nCol] == nColor)
+        {
+            std::cout << "nCurRow:" << nCurRow << " nCurCol:" << nCurCol << std::endl;
+            nCount++;
+            nCurRow += nRowOffset;
+            nCurCol += nColOffset;
+        }
+
+        nCurRow = nRow - nRowOffset;
+        nCurCol = nCol - nColOffset;
+        while (nCurRow <= kBoardRow && nCurCol <= kBoardCol &&
+               m_vBoard[nRow][nCol] == nColor)
+        {
+            std::cout << "nCurRow:" << nCurRow << " nCurCol:" << nCurCol << std::endl;
+            nCount++;
+            nCurRow -= nRowOffset;
+            nCurCol -= nColOffset;
+        }
+
+        std::cout << "nCount:" << nCount << std::endl;
+        return nCount >= 5 ? true : false;
+    }
+
     bool isWin(int nRow, int nCol)
     {
+        if (checkFiveChess(nRow, nCol, 0, 1) || checkFiveChess(nRow, nCol, 1, 0) ||
+            checkFiveChess(nRow, nCol, -1, 1) || checkFiveChess(nRow, nCol, 1, -1))
+        {
+            return true;
+        }
+        return false;
     }
 
 private:
