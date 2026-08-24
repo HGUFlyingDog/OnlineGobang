@@ -63,6 +63,26 @@ public:
         return true;
     }
 
+    webSocketServer::connection_ptr getConnectionFromHall(uint64_t uid)
+    {
+        auto it = m_mHallUser.find(uid);
+        if (it != m_mHallUser.end())
+        {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    webSocketServer::connection_ptr getConnectionFromRoom(uint64_t uid)
+    {
+        auto it = m_mRoomUser.find(uid);
+        if (it != m_mRoomUser.end())
+        {
+            return it->second;
+        }
+        return nullptr;
+    }
+
 private:
     std::mutex m_mutex;
 
