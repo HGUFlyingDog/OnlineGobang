@@ -2,6 +2,7 @@
 #include "util.hpp"
 #include "db.hpp"
 #include "onlineManager.hpp"
+#include "room.hpp"
 
 void mysqlTest()
 {
@@ -85,7 +86,17 @@ void onlineTest()
     std::cout << om.isInGameRoom(10086) << std::endl;
 }
 
+void testRoom()
+{
+    user_table tb;
+    online_manager om;
+    uint64_t roomID = 10086;
+    room r(roomID, &tb, &om);
+    r.addBlackUser(uint16_t(123123));
+    r.addWhiteUser(uint16_t(321321));
+}
+
 int main()
 {
-    onlineTest();
+    testRoom();
 }

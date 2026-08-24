@@ -28,12 +28,12 @@ public:
           m_ptrOnlineManager(ptrOnlineManager),
           m_vBoard(kBoardRow, std::vector<int>(kBoardCol, 0))
     {
-        INFO_LOG("%lu 房间创建成功!", m_nRoomID);
+        INFO_LOG("%u 房间创建成功!", m_nRoomID);
     }
 
     ~room()
     {
-        INFO_LOG("%lu 房间销毁成功!", m_nRoomID);
+        INFO_LOG("%u 房间销毁成功!", m_nRoomID);
     }
 
     Json::Value handleChess(Json::Value &Jreq)
@@ -252,11 +252,11 @@ public:
         {
             m_nWhiteID = uid;
             ++m_nPlayerCount;
-            INFO_LOG("成功创建ID为%lu的白玩家", m_nBlackID);
+            INFO_LOG("成功创建ID为%u的白玩家", m_nBlackID);
         }
         else
         {
-            ERR_LOG("白棋玩家已经创建ID:%lu , ID为%lu的玩家创建失败", m_nWhiteID, uid);
+            ERR_LOG("白棋玩家已经创建ID:%u , ID为%u的玩家创建失败", m_nWhiteID, uid);
         }
     }
 
@@ -266,11 +266,11 @@ public:
         {
             m_nBlackID = uid;
             ++m_nPlayerCount;
-            INFO_LOG("成功创建ID为%lu的黑棋玩家", m_nBlackID);
+            INFO_LOG("成功创建ID为%u的黑棋玩家", m_nBlackID);
         }
         else
         {
-            ERR_LOG("黑棋玩家已经创建ID:%lu , ID为%lu的玩家创建失败", m_nBlackID, uid);
+            ERR_LOG("黑棋玩家已经创建ID:%u , ID为%u的玩家创建失败", m_nBlackID, uid);
         }
     }
 
