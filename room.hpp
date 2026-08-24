@@ -147,7 +147,7 @@ public:
 
         if (roomID != m_nRoomID)
         {
-            JResp["opType"] = "putChess";
+            JResp["opType"] = "chat";
             JResp["result"] = false;
             JResp["reason"] = "房间号不匹配,当前房间号为" + std::to_string(m_nRoomID) + "传入的房间号为" + std::to_string(roomID);
             return JResp;
@@ -167,10 +167,79 @@ public:
         JResp["result"] = true;
         return JResp;
     }
-    Json::Value handleExit(uint64_t uid);
-    Json::Value handleRequest(Json::Value &Jreq);
 
-    void broadCast(Json::Value &Jrsp);
+    /// @brief 处理玩家的退出 如果是在正常游戏中进行退出的，那么判断对方胜利；如果游戏结束后已经退出的话，就只把房间的玩家数量减一
+    /// @param uid 退出的玩家的ID
+    void handleExit(uint64_t uid)
+    {
+
+        if (m_eStatus != roomStatus::GameFinshed)
+        {
+            Json::Value JResp;
+            JResp["opType"] = "putChess";
+            JResp["result"] = true;
+            JResp["reason"] = "对方掉线";
+            JResp["uid"] = uid;
+            JResp["row"] = -1;
+            JResp["col"] = -1;
+            uint64_t nWinnerId = uid == m_nWhiteID ? m_nBlackID : m_nWhiteID;
+            JResp["winner"] = nWinnerId;
+            broadCast(JResp);
+        }
+
+        m_nPlayerCount--;
+    }
+
+    void handleRequest(Json::Value &Jreq)
+    {
+        Json::Value JResp = Jreq;
+        std::cout << Json_Util::serializeJson(Jreq) << std::endl;
+
+        uint64_t roomID = JResp["room_id"].asUInt64();
+        if (roomID != m_nRoomID)
+        {
+            JResp["opType"] = Jreq["opType"];
+            JResp["result"] = false;
+            JResp["reason"] = "房间号不匹配,当前房间号为" + std::to_string(m_nRoomID) + "传入的房间号为" + std::to_string(roomID);
+            return;
+        }
+
+        if (Jreq["opType"] == "putChess")
+        {
+            JResp = handleChess(Jreq);
+            m_eStatus = roomStatus::GameFinshed;
+        }
+        else if (Jreq["opType"] == "chat")
+        {
+            JResp = handleChat(Jreq);
+        }
+        else
+        {
+            std::cout << "不支持的操作类型:" << Jreq["opType"].asString() << std::endl;
+        }
+
+        broadCast(JResp);
+    }
+
+    void broadCast(Json::Value &Jrsp)
+    {
+        // 把传入的信息进行序列化
+        std::string strJsonValue = Json_Util::serializeJson(Jrsp);
+
+        // 找到房间里面玩家对应的连接
+        webSocketServer::connection_ptr ptrWhiteConnection = m_ptrOnlineManager->getConnectionFromRoom(m_nWhiteID);
+        webSocketServer::connection_ptr ptrBlackConnection = m_ptrOnlineManager->getConnectionFromRoom(m_nBlackID);
+
+        // 发送
+        if (ptrWhiteConnection)
+        {
+            ptrWhiteConnection->send(strJsonValue);
+        }
+        if (ptrBlackConnection)
+        {
+            ptrBlackConnection->send(strJsonValue);
+        }
+    }
 
     void setRoomStatus(roomStatus status)
     {
