@@ -3,6 +3,7 @@
 #include "util.hpp"
 #include "db.hpp"
 #include "onlineManager.hpp"
+#include <memory>
 #include <vector>
 
 enum roomStatus
@@ -28,14 +29,99 @@ public:
           m_ptrOnlineManager(ptrOnlineManager),
           m_vBoard(kBoardRow, std::vector<int>(kBoardCol, 0))
     {
-        INFO_LOG("%u 房间创建成功!", m_nRoomID);
+        INFO_LOG("%lu 房间创建成功!", m_nRoomID);
     }
 
     ~room()
     {
-        INFO_LOG("%u 房间销毁成功!", m_nRoomID);
+        INFO_LOG("%lu 房间销毁成功!", m_nRoomID);
     }
 
+    /// @brief 处理玩家的退出 如果是在正常游戏中进行退出的，那么判断对方胜利；如果游戏结束后已经退出的话，就只把房间的玩家数量减一
+    /// @param uid 退出的玩家的ID
+    void handleExit(uint64_t uid)
+    {
+
+        if (m_eStatus != roomStatus::GameFinshed)
+        {
+            Json::Value JResp;
+            JResp["opType"] = "putChess";
+            JResp["result"] = true;
+            JResp["reason"] = "对方掉线";
+            JResp["uid"] = uid;
+            JResp["row"] = -1;
+            JResp["col"] = -1;
+            uint64_t nWinnerId = uid == m_nWhiteID ? m_nBlackID : m_nWhiteID;
+            JResp["winner"] = nWinnerId;
+            broadCast(JResp);
+        }
+
+        m_nPlayerCount--;
+    }
+
+    void addWhiteUser(uint64_t uid)
+    {
+        if (m_nWhiteID == 0)
+        {
+            m_nWhiteID = uid;
+            ++m_nPlayerCount;
+            INFO_LOG("成功创建ID为%lu的白玩家", m_nBlackID);
+        }
+        else
+        {
+            ERR_LOG("白棋玩家已经创建ID:%lu , ID为%lu的玩家创建失败", m_nWhiteID, uid);
+        }
+    }
+
+    void addBlackUser(uint64_t uid)
+    {
+        if (m_nBlackID == 0)
+        {
+            m_nBlackID = uid;
+            ++m_nPlayerCount;
+            INFO_LOG("成功创建ID为%lu的黑棋玩家", m_nBlackID);
+        }
+        else
+        {
+            ERR_LOG("黑棋玩家已经创建ID:%lu , ID为%lu的玩家创建失败", m_nBlackID, uid);
+        }
+    }
+
+    // AI:get函数的生成使用了AI自动补全
+    uint16_t getRoomID() const
+    {
+        return m_nRoomID;
+    }
+
+    uint16_t getWhiteID() const
+    {
+        return m_nWhiteID;
+    }
+
+    uint16_t getBlackID() const
+    {
+        return m_nBlackID;
+    }
+
+    size_t getPlayerCount() const
+    {
+        return m_nPlayerCount;
+    }
+
+    roomStatus getRoomStatus() const
+    {
+        return m_eStatus;
+    }
+
+    std::vector<std::vector<int>> getBoard() const
+    {
+        return m_vBoard;
+    }
+
+private:
+    /// @brief 处理下棋的请求 该方法由handleRequest 进行调用
+    /// @param Jreq 由handleRequest发送过来的请求的Json数据
+    /// @return 返回解析好的 JSON 数据
     Json::Value handleChess(Json::Value &Jreq)
     {
         Json::Value resp;
@@ -168,28 +254,6 @@ public:
         return JResp;
     }
 
-    /// @brief 处理玩家的退出 如果是在正常游戏中进行退出的，那么判断对方胜利；如果游戏结束后已经退出的话，就只把房间的玩家数量减一
-    /// @param uid 退出的玩家的ID
-    void handleExit(uint64_t uid)
-    {
-
-        if (m_eStatus != roomStatus::GameFinshed)
-        {
-            Json::Value JResp;
-            JResp["opType"] = "putChess";
-            JResp["result"] = true;
-            JResp["reason"] = "对方掉线";
-            JResp["uid"] = uid;
-            JResp["row"] = -1;
-            JResp["col"] = -1;
-            uint64_t nWinnerId = uid == m_nWhiteID ? m_nBlackID : m_nWhiteID;
-            JResp["winner"] = nWinnerId;
-            broadCast(JResp);
-        }
-
-        m_nPlayerCount--;
-    }
-
     void handleRequest(Json::Value &Jreq)
     {
         Json::Value JResp = Jreq;
@@ -246,66 +310,6 @@ public:
         m_eStatus = status;
     }
 
-    void addWhiteUser(uint16_t uid)
-    {
-        if (m_nWhiteID == 0)
-        {
-            m_nWhiteID = uid;
-            ++m_nPlayerCount;
-            INFO_LOG("成功创建ID为%u的白玩家", m_nBlackID);
-        }
-        else
-        {
-            ERR_LOG("白棋玩家已经创建ID:%u , ID为%u的玩家创建失败", m_nWhiteID, uid);
-        }
-    }
-
-    void addBlackUser(uint16_t uid)
-    {
-        if (m_nBlackID == 0)
-        {
-            m_nBlackID = uid;
-            ++m_nPlayerCount;
-            INFO_LOG("成功创建ID为%u的黑棋玩家", m_nBlackID);
-        }
-        else
-        {
-            ERR_LOG("黑棋玩家已经创建ID:%u , ID为%u的玩家创建失败", m_nBlackID, uid);
-        }
-    }
-
-    // AI:get函数的生成使用了AI自动补全
-    uint16_t getRoomID() const
-    {
-        return m_nRoomID;
-    }
-
-    uint16_t getWhiteID() const
-    {
-        return m_nWhiteID;
-    }
-
-    uint16_t getBlackID() const
-    {
-        return m_nBlackID;
-    }
-
-    size_t getPlayerCount() const
-    {
-        return m_nPlayerCount;
-    }
-
-    roomStatus getRoomStatus() const
-    {
-        return m_eStatus;
-    }
-
-    std::vector<std::vector<int>> getBoard() const
-    {
-        return m_vBoard;
-    }
-
-private:
     bool checkFiveChess(int nRow, int nCol, int nRowOffset, int nColOffset)
     {
         // AI: 此函数的cout输出为AI自动补全生成
@@ -351,10 +355,10 @@ private:
     }
 
 private:
-    uint16_t m_nRoomID; // 房间的ID
+    uint64_t m_nRoomID; // 房间的ID
 
-    uint16_t m_nWhiteID; // 白色棋子玩家的ID
-    uint16_t m_nBlackID; // 褐色棋子玩家的ID
+    uint64_t m_nWhiteID; // 白色棋子玩家的ID
+    uint64_t m_nBlackID; // 褐色棋子玩家的ID
 
     size_t m_nPlayerCount;
 
@@ -364,4 +368,116 @@ private:
     online_manager *m_ptrOnlineManager; // 用户的在线管理模块
 
     std::vector<std::vector<int>> m_vBoard; // 棋盘的数据
+};
+
+using room_Ptr = std::shared_ptr<room>;
+
+class roomManager
+{
+
+public:
+    roomManager(user_table *userTable, online_manager *onlineManager)
+        : m_ptrUserTable(userTable), m_ptrOnlineManager(onlineManager),
+          m_nNextValue(0)
+    {
+    }
+
+    /// @brief 为在大厅匹配成功的用户创建一个房间
+    /// @return
+    room_Ptr createRoom(uint64_t nID1, uint64_t nID2)
+    {
+        // 两个用户都在才创建房间
+        if (!(m_ptrOnlineManager->isInGameHall(nID1) && m_ptrOnlineManager->isInGameHall(nID2)))
+        {
+            INFO_LOG("有用户不在游戏大厅,创建房间失败");
+            return nullptr;
+        }
+
+        std::unique_lock<std::mutex> lock(m_mMutex);
+        uint64_t nRoomID = m_nNextValue++;
+        room_Ptr ptrRoom = std::make_shared<room>(nRoomID, m_ptrUserTable, m_ptrOnlineManager);
+        ptrRoom->addWhiteUser(nID1);
+        ptrRoom->addBlackUser(nID2);
+
+        m_mpRoomMap.insert({nRoomID, ptrRoom});
+        m_mpUserMap.insert({nID1, nRoomID});
+        m_mpUserMap.insert({nID2, nRoomID});
+
+        return ptrRoom;
+    }
+
+    room_Ptr getRoomByRoomID(uint64_t nRoomId)
+    {
+        std::unique_lock<std::mutex> lock(m_mMutex);
+        auto it = m_mpRoomMap.find(nRoomId);
+        if (it == m_mpRoomMap.end())
+        {
+            return nullptr;
+        }
+        return it->second;
+    }
+
+    room_Ptr getRoomByUserID(uint64_t nUserId)
+    {
+        std::lock_guard<std::mutex> lock(m_mMutex);
+        auto it = m_mpUserMap.find(nUserId);
+        if (it == m_mpUserMap.end())
+        {
+            return nullptr;
+        }
+
+        // Tip:unique_lock是不可重入锁，所以不能再次直接调用上面的函数
+        auto itR = m_mpRoomMap.find(it->second);
+        if (itR == m_mpRoomMap.end())
+        {
+            return nullptr;
+        }
+        return itR->second;
+    }
+
+    /// @brief 删除房间中的指定用户 通常实在用户掉线的时候进行调用 如果用户的数量为0 的话 销毁房间
+    /// @param nUserID
+    void removeRoomUser(uint64_t nUserID)
+    {
+        room_Ptr ptrRoom = getRoomByUserID(nUserID); // 这里已经进行加锁
+        if(ptrRoom.get() == nullptr)
+        {
+            return;
+        }
+        // 处理玩家的退出功能
+        ptrRoom->handleExit(nUserID);
+
+        if(ptrRoom->getPlayerCount() ==  0 ) //玩家都退出了就销毁房间
+        {
+            removeRoom(ptrRoom->getRoomID());
+        }
+    }
+
+private:
+    // 这个函数由其他函数进行调用 在调用前需要先进行锁定
+    void removeRoom(uint64_t nRoomID)
+    {
+        // 房间信息在 unordered_map 里面使用 shared_ptr 进行管理
+        // 所以在没有其他房间占用这个 shared_ptr 的情况下，这个房间会被自动析构，所以我们不需要进行释放
+        auto it = m_mpRoomMap.find(nRoomID);
+        if (it == m_mpRoomMap.end())
+        {
+            return;
+        }
+
+        // 先找到房间里面的用户 然后从房间里面删除这里面的用户
+        m_mpUserMap.erase(it->second->getBlackID());
+        m_mpUserMap.erase(it->second->getWhiteID());
+        m_mpRoomMap.erase(nRoomID);
+    }
+
+private:
+    user_table *m_ptrUserTable;
+    online_manager *m_ptrOnlineManager;
+
+    uint64_t m_nNextValue; // 为了保护计数器需要上锁
+    std::mutex m_mMutex;
+
+    std::unordered_map<uint64_t, room_Ptr> m_mpRoomMap;
+    std::unordered_map<uint64_t, uint64_t> m_mpUserMap;
 };

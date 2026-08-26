@@ -92,11 +92,21 @@ void testRoom()
     online_manager om;
     uint64_t roomID = 10086;
     room r(roomID, &tb, &om);
-    r.addBlackUser(uint16_t(123123));
-    r.addWhiteUser(uint16_t(321321));
+    uint16_t id = 123;
+    r.addBlackUser(id);
+    r.addBlackUser(12);
+    r.addWhiteUser(uint16_t(656));
+}
+
+void testRoomManager()
+{
+    user_table tb;
+    online_manager om;
+    roomManager rm(&tb, &om);
+    rm.createRoom(11, 15);
 }
 
 int main()
 {
-    testRoom();
+    testRoomManager();
 }
