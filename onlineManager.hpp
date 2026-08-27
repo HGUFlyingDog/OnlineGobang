@@ -65,6 +65,11 @@ public:
 
     webSocketServer::connection_ptr getConnectionFromHall(uint64_t uid)
     {
+        if(uid == 0)
+        {
+            ERR_LOG("[ERR][onlineManager::getConnectionFromHall] uid is 0");
+            return nullptr;
+        }
         auto it = m_mHallUser.find(uid);
         if (it != m_mHallUser.end())
         {

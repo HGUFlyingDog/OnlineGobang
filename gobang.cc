@@ -4,6 +4,15 @@
 #include "onlineManager.hpp"
 #include "room.hpp"
 #include "session.hpp"
+#include "matcher.hpp"
+
+int main()
+{
+    user_table tb;
+    online_manager om;
+    roomManager rm(&tb, &om);
+    matcher ma(&rm,&tb,&om);
+}
 
 void mysqlTest()
 {
@@ -111,9 +120,4 @@ void testSession()
 {
     webSocketServer sever;
     sessionManager sm(&sever);
-}
-
-int main()
-{
-    testSession();
 }
