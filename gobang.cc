@@ -3,6 +3,7 @@
 #include "db.hpp"
 #include "onlineManager.hpp"
 #include "room.hpp"
+#include "session.hpp"
 
 void mysqlTest()
 {
@@ -106,7 +107,13 @@ void testRoomManager()
     rm.createRoom(11, 15);
 }
 
+void testSession()
+{
+    webSocketServer sever;
+    sessionManager sm(&sever);
+}
+
 int main()
 {
-    testRoomManager();
+    testSession();
 }
