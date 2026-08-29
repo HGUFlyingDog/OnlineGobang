@@ -24,7 +24,10 @@ public:
         INFO_LOG("sessionc销毁成功 sessionID: %lu", m_nSessionID);
     }
 
-    void setUser();
+    void setUser(uint64_t UserID)
+    {
+        m_nUserID = UserID;
+    }
     uint64_t getUser();
     bool isLogin();
 
@@ -42,6 +45,11 @@ public:
     webSocketServer::timer_ptr getTimer()
     {
         return m_ptrTimer;
+    }
+
+    uint64_t getSessionID()
+    {
+        return m_nSessionID;
     }
 
 private:
@@ -62,13 +70,14 @@ public:
     }
     ~sessionManager() = default;
 
-    void createSession()
+    session_ptr createSession()
     {
         std::lock_guard lock(m_mMutex);
         uint64_t unCurrentID = m_unNextSessionID++;
         session_ptr ptrSession = std::make_shared<session>(unCurrentID);
         ptrSession->setStatus(sessionStatus::Login);
         m_mpSession.insert({unCurrentID, ptrSession});
+        return ptrSession;
     }
 
     session_ptr getSession(uint64_t sessionID)
