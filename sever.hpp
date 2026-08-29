@@ -7,6 +7,7 @@
 #include "iostream"
 
 const std::string kWWWRoot = "./wwwroot";
+const int kSessionTimeOut = 30000;
 
 class gobangSever
 {
@@ -155,10 +156,72 @@ private:
         handleHttpResp(ptrConnection, true, websocketpp::http::status_code::ok, "Session创建成功");
     }
 
+    std::string getValueFromCookie(const std::string &strCookie, const std::string &strKey)
+    {
+        // Cookie的组织使用 "; " 一个分号加上一个空格进行组织的
+        std::vector<std::string> JRet = string_Util::split(strCookie, "; ");
+
+        for (auto str : JRet)
+        {
+            std::vector<std::string> strSubString = string_Util::split(str, "=");
+            if (strSubString.size() != 2) // 不是Key Value 形式 跳过
+            {
+                continue;
+            }
+            if (strSubString[0] == strKey)
+            {
+                return strSubString[1];
+            }
+        }
+        return std::string();
+    }
+
     // 获取用户信息
     void getUserInfo(webSocketServer::connection_ptr ptrConnection)
     {
-    }
+
+        // 获取用户信息前需要先校验用户的状态
+        // 从用户的Cookie获取相关的Session 如果没有说明用户没有登录 让客户端重新登陆
+        std::string strCookie = ptrConnection->get_request_header("Cookie");
+        if (strCookie.empty())
+        {
+            handleHttpResp(ptrConnection, false, websocketpp::http::status_code::bad_request, "请求没有Cookie,请重新登陆");
+            return;
+        }
+        // 然后在Session里面找到用户相关的信息 如果找不到对应的Session的话 说明用户的登录已经过期了 需要重新登录
+        std::string strSSID = getValueFromCookie(strCookie, "SSID");
+
+        if (strSSID.empty())
+        {
+            handleHttpResp(ptrConnection, false, websocketpp::http::status_code::bad_request, "Cookie没有SSID,请重新登陆");
+            return;
+        }
+        // 找到 用户信息之后 序列化返回给客户端 刷新用户的Session的过期时间
+
+        session_ptr ptrSession = m_SessionManager.getSession(std::stoul(strSSID));
+
+        if (ptrSession.get() == nullptr)
+        {
+            handleHttpResp(ptrConnection, false, websocketpp::http::status_code::bad_request, "登陆过期, 请重新登陆");
+        }
+
+        // 从数据库找到用户的信息
+        uint64_t uid = ptrSession->getUser();
+
+        Json::Value JUserINfo;
+        if (!m_UserTable.selectById(uid, JUserINfo))
+        {
+            handleHttpResp(ptrConnection, false, websocketpp::http::status_code::bad_request, "找不到用户信息, 请重新登陆");
+        }
+
+        std::string strJson = Json_Util::serializeJson(JUserINfo);
+
+        ptrConnection->set_body(strJson);
+        ptrConnection->set_status(websocketpp::http::status_code::ok);
+        ptrConnection->append_header("Content-Type", "application/json");
+
+        m_SessionManager.setSessionExpireTime(ptrSession->getSessionID(), kSessionTimeOut);
+    }  
 
     void opencallback(websocketpp::connection_hdl hdl)
     {

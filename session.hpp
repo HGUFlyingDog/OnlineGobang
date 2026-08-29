@@ -28,7 +28,12 @@ public:
     {
         m_nUserID = UserID;
     }
-    uint64_t getUser();
+
+    uint64_t getUser()
+    {
+        return m_nUserID;
+    }
+
     bool isLogin();
 
     // 设置这个 session 的状态 由 sessionManager 进行调用
