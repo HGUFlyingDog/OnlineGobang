@@ -122,10 +122,10 @@ public:
 class file_Util
 {
 public:
-    static std::string readFile(const std::string &fileName)
+    static std::string readFile(const std::string &strPathName)
     {
         // 打开文件
-        std::ifstream ifs(fileName, std::ios::binary); // 使用二进制读取文件可以避免读取文本文件时对一些数据进行错误的处理
+        std::ifstream ifs(strPathName, std::ios::binary); // 使用二进制读取文件可以避免读取文本文件时对一些数据进行错误的处理
         // 获取文件大小 把文件指针放到文件的末尾 然后获取相对于起始位置的偏移量
         size_t fileSize;
         if (ifs.is_open())
@@ -137,7 +137,7 @@ public:
         }
         else
         {
-            ERR_LOG("Failed to open file: %s", fileName.c_str());
+            ERR_LOG("Failed to open file: %s", strPathName.c_str());
             ifs.close();
             return "";
         }
@@ -149,11 +149,11 @@ public:
         ifs.read(&strRet[0], fileSize);
         if (ifs.good())
         {
-            INFO_LOG("File read successfully: %s", fileName.c_str());
+            // INFO_LOG("File read successfully: %s", strPathName.c_str());
         }
         else
         {
-            ERR_LOG("Failed to read file: %s", fileName.c_str());
+             // ERR_LOG("Failed to read file: %s", strPathName.c_str());
             ifs.close();
             return "";
         }
