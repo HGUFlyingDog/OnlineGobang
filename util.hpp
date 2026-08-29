@@ -133,7 +133,7 @@ public:
             // seekg(off, dir) 的作用就是：以 dir 指定的位置为基准，将读取指针移动 off 个字节
             ifs.seekg(0, std::ios::end);
             fileSize = ifs.tellg();
-            std::cout << "File size: " << fileSize << " bytes" << std::endl;
+            // std::cout << "File size: " << fileSize << " bytes" << std::endl;
         }
         else
         {
@@ -153,7 +153,7 @@ public:
         }
         else
         {
-             // ERR_LOG("Failed to read file: %s", strPathName.c_str());
+            // ERR_LOG("Failed to read file: %s", strPathName.c_str());
             ifs.close();
             return "";
         }

@@ -55,7 +55,7 @@ private:
         std::string strUri = req.get_uri();
 
         std::string strFileName = m_strWebRoot + strUri;
-        INFO_LOG("staticFileHandler, file name: %s", strFileName.c_str());
+        // INFO_LOG("staticFileHandler, file name: %s", strFileName.c_str());
         if (strFileName.back() == '/') // 请求的是一个目录
         {
             strFileName += "login.html";
