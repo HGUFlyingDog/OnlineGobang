@@ -1,41 +1,61 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>登录</title>
 
-    <link rel="stylesheet" href="./css/common.css">
-    <link rel="stylesheet" href="./css/login.css">
-</head>
-<body>
-    <div class="nav">
-        网络五子棋对战游戏
-    </div>
+    <link rel="stylesheet" href="./css/common.css" />
+    <link rel="stylesheet" href="./css/login.css" />
+  </head>
+  <body>
+    <div class="nav">网络五子棋对战游戏</div>
     <div class="login-container">
-        <!-- 登录界面的对话框 -->
-        <div class="login-dialog">
-            <!-- 提示信息 -->
-            <h3>登录</h3>
-            <!-- 这个表示一行 -->
-            <div class="row">
-                <span>用户名</span>
-                <input type="text" id="user_name">
-            </div>
-            <!-- 这是另一行 -->
-            <div class="row">
-                <span>密码</span>
-                <input type="password" id="password">
-            </div>
-            <!-- 提交按钮 -->
-            <div class="row">
-                <button id="submit">提交</button>
-            </div>
+      <!-- 登录界面的对话框 -->
+      <div class="login-dialog">
+        <!-- 提示信息 -->
+        <h3>登录</h3>
+        <!-- 这个表示一行 -->
+        <div class="row">
+          <span>用户名</span>
+          <input type="text" id="user_name" />
         </div>
-
+        <!-- 这是另一行 -->
+        <div class="row">
+          <span>密码</span>
+          <input type="password" id="password" />
+        </div>
+        <!-- 提交按钮 -->
+        <div class="row">
+          <button id="submit" onclick="login()">提交</button>
+        </div>
+      </div>
     </div>
 
     <script src="./js/jquery.min.js"></script>
-</body>
+    <script>
+      function login() {
+        var login_info = {
+          username: document.getElementById("user_name").value,
+          password: document.getElementById("password").value,
+        };
+
+        $.ajax({
+          url: "/login",
+          type: "POST",
+          data: JSON.stringify(login_info),
+          success: function (result) {
+            alert("登录成功");
+            window.location.assign("/game_hall.html");
+          },
+          error: function (xhr) {
+            alert(JSON.stringify(xhr));
+            document.getElementById("user_name").value = "";
+            document.getElementById("password").value = "";
+          },
+        });
+      }
+    </script>
+  </body>
 </html>
