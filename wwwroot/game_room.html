@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>游戏房间</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/game_room.css">
+</head>
+<body>
+    <div class="nav">网络五子棋对战游戏</div>
+    <div class="container">
+        <div id="chess_area">
+            <!-- 棋盘区域, 需要基于 canvas 进行实现 -->
+            <canvas id="chess" width="450px" height="450px"></canvas>
+            <!-- 显示区域 -->
+            <div id="screen"> 等待玩家连接中... </div>
+        </div>
+        <div id="chat_area" width="400px" height="300px">
+            <div id="chat_show">
+                <p id="self_msg">你好！</p></br>
+                <p id="peer_msg">你好！</p></br>
+            </div>
+            <div id="msg_show">
+                <input type="text" id="chat_input">
+                <button id="chat_button">发送</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        let chessBoard = [];
+        let BOARD_ROW_AND_COL = 15;
+        let chess = document.getElementById('chess');
+        //获取chess控件区域2d画布
+        let context = chess.getContext('2d');
+        function initGame() {
+            initBoard();
+            // 背景图片
+            let logo = new Image();
+            logo.src = "image/sky.jpeg";
+            logo.onload = function () {
+                // 绘制图片
+                context.drawImage(logo, 0, 0, 450, 450);
+                // 绘制棋盘
+                drawChessBoard();
+            }
+        }
+        function initBoard() {
+            for (let i = 0; i < BOARD_ROW_AND_COL; i++) {
+                chessBoard[i] = [];
+                for (let j = 0; j < BOARD_ROW_AND_COL; j++) {
+                    chessBoard[i][j] = 0;
+                }
+            }
+        }
+        // 绘制棋盘网格线
+        function drawChessBoard() {
+            context.strokeStyle = "#BFBFBF";
+            for (let i = 0; i < BOARD_ROW_AND_COL; i++) {
+                //横向的线条
+                context.moveTo(15 + i * 30, 15);
+                context.lineTo(15 + i * 30, 430); 
+                context.stroke();
+                //纵向的线条
+                context.moveTo(15, 15 + i * 30);
+                context.lineTo(435, 15 + i * 30); 
+                context.stroke();
+            }
+        }
+        //绘制棋子
+        function oneStep(i, j, isWhite) {
+            if (i < 0 || j < 0) return;
+            context.beginPath();
+            context.arc(15 + i * 30, 15 + j * 30, 13, 0, 2 * Math.PI);
+            context.closePath();
+            //createLinearGradient() 方法创建放射状/圆形渐变对象
+            var gradient = context.createRadialGradient(15 + i * 30 + 2, 15 + j * 30 - 2, 13, 15 + i * 30 + 2, 15 + j * 30 - 2, 0);
+            // 区分黑白子
+            if (!isWhite) {
+                gradient.addColorStop(0, "#0A0A0A");
+                gradient.addColorStop(1, "#636766");
+            } else {
+                gradient.addColorStop(0, "#D1D1D1");
+                gradient.addColorStop(1, "#F9F9F9");
+            }
+            context.fillStyle = gradient;
+            context.fill();
+        }
+        //棋盘区域的点击事件
+        chess.onclick = function (e) {
+            let x = e.offsetX;
+            let y = e.offsetY;
+            // 注意, 横坐标是列, 纵坐标是行
+            // 这里是为了让点击操作能够对应到网格线上
+            let col = Math.floor(x / 30);
+            let row = Math.floor(y / 30);
+            if (chessBoard[row][col] != 0) {
+                alert("当前位置已有棋子！");
+                return;
+            }
+            oneStep(col, row, true);
+        }
+        initGame();
+    </script>
+</body>
+</html>
