@@ -5,13 +5,12 @@
 #include "room.hpp"
 #include "session.hpp"
 #include "matcher.hpp"
+#include "sever.hpp"
 
 int main()
 {
-    user_table tb;
-    online_manager om;
-    roomManager rm(&tb, &om);
-    matcher ma(&rm,&tb,&om);
+    gobangSever sever;
+    sever.start(8080);
 }
 
 void mysqlTest()

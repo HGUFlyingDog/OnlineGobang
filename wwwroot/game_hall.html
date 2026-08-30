@@ -1,53 +1,81 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>游戏大厅</title>
-    <link rel="stylesheet" href="./css/common.css">
-    <link rel="stylesheet" href="./css/game_hall.css">
-</head>
-<body>
+    <link rel="stylesheet" href="./css/common.css" />
+    <link rel="stylesheet" href="./css/game_hall.css" />
+  </head>
+  <body>
     <div class="nav">网络五子棋对战游戏</div>
     <!-- 整个页面的容器元素 -->
     <div class="container">
-        <!-- 这个 div 在 container 中是处于垂直水平居中这样的位置的 -->
-        <div>
-            <!-- 展示用户信息 -->
-            <div id="screen">
-            </div>
-            <!-- 匹配按钮 -->
-            <div id="match-button">开始匹配</div>
-        </div>
+      <!-- 这个 div 在 container 中是处于垂直水平居中这样的位置的 -->
+      <div>
+        <!-- 展示用户信息 -->
+        <div id="screen"></div>
+        <!-- 匹配按钮 -->
+        <div id="match-button">开始匹配</div>
+      </div>
     </div>
 
     <script src="./js/jquery.min.js"></script>
 
     <script>
-        function getUserInfo()
-        {
-            $.ajax({
-                url:"/info",
-                type:"GET",
-                success:function(res)
-                {
-                    var info_html = "<p>" + "用户:" + res.username + " 得分:" + res.score + "<br>"+
-                        "比赛场次: " + res.total_count + " 获胜场次:" +  res.win_count ;
+      var ws_url = "ws://" + location.host + "/hall"; // 创建一个连接的Url
+      var ws_hdl = null; // 点击按钮需要发送数据 所以放在全局
 
-                    var Screen_div = document.getElementById("screen");
-                    Screen_div.innerHTML = info_html;
-                },
-                error:function(xhr)
-                {
-                    alert(JSON.stringify(xhr));
-                    location.replace("/login.html");
-                }
+      function getUserInfo() {
+        $.ajax({
+          url: "/info",
+          type: "GET",
+          success: function (res) {
+            var info_html =
+              "<p>" +
+              "用户:" +
+              res.username +
+              " 得分:" +
+              res.score +
+              "<br>" +
+              "比赛场次: " +
+              res.total_count +
+              " 获胜场次:" +
+              res.win_count;
 
-            })
-        }
+            var Screen_div = document.getElementById("screen");
+            Screen_div.innerHTML = info_html;
 
-        getUserInfo();
+            ws_hdl = new WebSocket(ws_url);
+            // 设置回调函数
+
+            ws_hdl.onopen = ws_open;
+            ws_hdl.onclose = ws_close;
+            ws_hdl.onerror = ws_onErr;
+            ws_hdl.onmessage = ws_message;
+          },
+          error: function (xhr) {
+            alert(JSON.stringify(xhr));
+            location.replace("/login.html");
+          },
+        });
+      }
+
+      function ws_open() {
+        console.log("WebSocket连接已建立");
+      }
+      function ws_close() {
+        console.log("WebSocket连接已关闭");
+      }
+      function ws_onErr() {
+        console.log("WebSocket连接发生错误");
+      }
+      function ws_message(event) {
+        alert(JSON.stringify(event));
+      }
+
+      getUserInfo();
     </script>
-</body>
+  </body>
 </html>
