@@ -2,9 +2,10 @@
 #include <list>
 #include <mutex>
 #include <condition_variable>
-#include <iostream>
+#include "onlineManager.hpp"
 #include "util.hpp"
-
+#include "db.hpp"
+#include "room.hpp"
 template <class T>
 class matchQueue
 {
@@ -150,6 +151,8 @@ public:
         {
             m_queSuper.remove(uid);
         }
+
+        return true;
     }
 
 private:

@@ -19,15 +19,15 @@ class online_manager
 {
 public:
     // webSocket 连接建立的时候调用
-    void enterGameHall(uint64_t uid, webSocketServer::connection_ptr connect)
+    void enterGameHall(uint64_t uid, webSocketServer::connection_ptr ptrConnection)
     {
         std::unique_lock<std::mutex> lock(m_mutex);
-        m_mHallUser.insert(std::make_pair(uid, connect));
+        m_mHallUser.insert(std::make_pair(uid, ptrConnection));
     }
-    void enterGameRoom(uint64_t uid, webSocketServer::connection_ptr connect)
+    void enterGameRoom(uint64_t uid, webSocketServer::connection_ptr ptrConnection)
     {
         std::unique_lock<std::mutex> lock(m_mutex);
-        m_mRoomUser.insert(std::make_pair(uid, connect));
+        m_mRoomUser.insert(std::make_pair(uid, ptrConnection));
     }
 
     // WebSocket 连接断开时调用
@@ -65,7 +65,7 @@ public:
 
     webSocketServer::connection_ptr getConnectionFromHall(uint64_t uid)
     {
-        if(uid == 0)
+        if (uid == 0)
         {
             ERR_LOG("[ERR][onlineManager::getConnectionFromHall] uid is 0");
             return nullptr;
