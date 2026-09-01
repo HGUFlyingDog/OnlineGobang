@@ -24,7 +24,7 @@ public:
     {
         std::unique_lock<std::mutex> lg(m_mMutex); // 条件变量不能使用 lock_guard
         m_cConditional.wait(lg, [this]()
-                            { return !m_lstUser.empty(); });
+                            { return m_lstUser.size() >= 2; });
     }
 
     // 入队并唤醒线程
@@ -36,17 +36,21 @@ public:
     }
 
     // 出队数据
-    T pop()
+    bool popTwo(T &out1, T &out2)
     {
         std::lock_guard<std::mutex> lg(m_mMutex);
         if (m_lstUser.empty())
         {
-            return T(0);
+            return false;
         }
 
-        T data = m_lstUser.front();
+        out1 = m_lstUser.front();
         m_lstUser.pop_front();
-        return data;
+
+        out2 = m_lstUser.front();
+        m_lstUser.pop_front();
+
+        return true;
     }
 
     // 移除指定的数据
@@ -168,7 +172,7 @@ private:
 
             // 出队两个玩家 获得玩家的ID 和对应的连接信息
             uint64_t uid1, uid2;
-            uid1 = queue.pop();
+            uid1 = queue.popTwo(uid1, uid2);
             if (uid1 == 0)
             {
                 ERR_LOG("用户状态异常 uid = %lu", uid1);
@@ -178,14 +182,6 @@ private:
             if (!ptrConnect1)
             {
                 ERR_LOG("大厅找不到用户的连接信息 uid = %lu", uid1);
-                continue;
-            }
-
-            uid2 = queue.pop();
-            if (uid2 == 0)
-            {
-                ERR_LOG("用户状态异常 uid = %lu", uid1);
-                queue.push(uid1);
                 continue;
             }
 
