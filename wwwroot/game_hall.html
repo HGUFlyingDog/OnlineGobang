@@ -27,6 +27,29 @@
       var ws_url = "ws://" + location.host + "/hall"; // 创建一个连接的Url
       var ws_hdl = null; // 点击按钮需要发送数据 所以放在全局
 
+      window.onbeforeunload = function () {
+        ws_hdl.close();
+      };
+
+      var buttonElement = document.getElementById("match-button");
+      var buttonFlag = "stop";
+      buttonElement.onclick = function () {
+        if (buttonFlag == "stop") // 发送开始请求
+        {
+          var JsonReq = {
+            optype: "match_start",
+          };
+          ws_hdl.send(JSON.stringify(JsonReq));
+        } else // 发送停止请求
+        {
+          var JsonReq = {
+            optype: "match_stop",
+          };
+          ws_hdl.send(JSON.stringify(JsonReq));
+        }
+        // 状态的修改放到回调函数里面
+      };
+
       function getUserInfo() {
         $.ajax({
           url: "/info",
@@ -72,7 +95,28 @@
         console.log("WebSocket连接发生错误");
       }
       function ws_message(event) {
-        alert(JSON.stringify(event));
+        var rsp = JSON.parse(event.data);
+        if (rsp["result"] == false) {
+          alert(rsp.reason);
+          location.replace("/login.html");
+          return;
+        }
+
+        if (rsp["optype"] == "hall_ready") {
+          alert("游戏大厅建立成功");
+        } else if (rsp["optype"] == "match_start") {
+          console.log("玩家进入匹配队列");
+          buttonFlag = "start";
+          buttonElement.innerHTML = "匹配中,点击按钮停止匹配";
+        } else if (rsp["optype"] == "match_stop") {
+          console.log("停止匹配");
+          buttonFlag = "stop";
+          buttonElement.innerHTML = "开始匹配";
+        } else {
+          alert(rsp["optype"]);
+          location.replace("/login.html");
+          return;
+        }
       }
 
       getUserInfo();

@@ -1,10 +1,12 @@
 #pragma once
 #include "db.hpp"
 #include "iostream"
+#include "logger.hpp"
 #include "matcher.hpp"
 #include "onlineManager.hpp"
 #include "room.hpp"
 #include "session.hpp"
+#include "util.hpp"
 #include <jsoncpp/json/value.h>
 
 const std::string kWWWRoot = "./wwwroot";
@@ -233,6 +235,7 @@ private:
       handleHttpResp(ptrConnection, false,
                      websocketpp::http::status_code::bad_request,
                      "登陆过期, 请重新登陆");
+      return;
     }
 
     // 从数据库找到用户的信息
@@ -317,8 +320,7 @@ private:
     m_SessionManager.setSessionExpireTime(ptrSession->getSessionID(), -1);
   }
 
-  void
-  opencallback(websocketpp::connection_hdl hdl) // 建立WebSocket长连接的回调函数
+  void opencallback(websocketpp::connection_hdl hdl) // 建立WebSocket长连接的回调函数
   {
     // 我们可以根据URi 来判断这个是游戏大厅的长连接请求还是游戏房间的长连接请求
     auto prtConnection = m_cScoketSever.get_con_from_hdl(hdl);
@@ -335,19 +337,152 @@ private:
     }
   }
 
-  void closecallback(websocketpp::connection_hdl hdl)
+  // 游戏大厅长连接断开
+  void closeGameHall(webSocketServer::connection_ptr ptrConnection)
   {
-    std::cout << "Connection closed" << std::endl;
+    // 从游戏大厅删除玩家
+    std::string strCookie = ptrConnection->get_request_header("Cookie");
+    if (strCookie.empty())
+    {
+      handleHttpResp(ptrConnection, false,
+                     websocketpp::http::status_code::bad_request,
+                     "请求没有Cookie,请重新登陆");
+      return;
+    }
+    // 然后在Session里面找到用户相关的信息 如果找不到对应的Session的话
+    // 说明用户的登录已经过期了 需要重新登录
+    std::string strSSID = getValueFromCookie(strCookie, "SSID");
+
+    if (strSSID.empty())
+    {
+      handleHttpResp(ptrConnection, false,
+                     websocketpp::http::status_code::bad_request,
+                     "Cookie没有SSID,请重新登陆");
+      return;
+    }
+    // 找到 用户信息之后 序列化返回给客户端 刷新用户的Session的过期时间
+
+    session_ptr ptrSession = m_SessionManager.getSession(std::stoul(strSSID));
+
+    if (ptrSession.get() == nullptr)
+    {
+      handleHttpResp(ptrConnection, false,
+                     websocketpp::http::status_code::bad_request,
+                     "登陆过期, 请重新登陆");
+    }
+
+    // 从数据库找到用户的信息
+    uint64_t uid = ptrSession->getUser();
+
+    m_OnlineManager.exitGameHall(uid);
+
+    // session 恢复生命周期的管理
+
+    m_SessionManager.setSessionExpireTime(ptrSession->getSessionID(), 30000);
   }
 
+  void closecallback(websocketpp::connection_hdl hdl) // webSocket连接断开的处理
+  {
+    // 区分是游戏游戏房间断开还是游戏大厅断开
+    auto prtConnection = m_cScoketSever.get_con_from_hdl(hdl);
+    auto request = prtConnection->get_request();
+
+    std::string strUri = request.get_uri();
+    INFO_LOG("连接断开, uri: %s", strUri.c_str());
+
+    if (strUri == "/hall") // 游戏大厅的长连接
+    {
+      closeGameHall(prtConnection);
+    }
+    else if (strUri == "/room") // 游戏房间的长连接
+    {
+    }
+  }
+
+  void messageGameHall(webSocketServer::connection_ptr ptrConnection, webSocketServer::message_ptr msg)
+  {
+    Json::Value JErrResp;
+    std::string strCookie = ptrConnection->get_request_header("Cookie");
+    if (strCookie.empty())
+    {
+      JErrResp["optype"] = "hall_ready";
+      JErrResp["result"] = false;
+      JErrResp["reason"] = "请求没有Cookie,请重新登陆";
+      ptrConnection->send(Json_Util::serializeJson(JErrResp));
+      return;
+    }
+    std::string strSSID = getValueFromCookie(strCookie, "SSID");
+
+    if (strSSID.empty())
+    {
+      JErrResp["optype"] = "hall_ready";
+      JErrResp["result"] = false;
+      JErrResp["reason"] = "Cookie没有SSID,请重新登陆";
+      ptrConnection->send(Json_Util::serializeJson(JErrResp));
+      return;
+    }
+
+    session_ptr ptrSession = m_SessionManager.getSession(std::stoul(strSSID));
+
+    std::string strBody = msg->get_payload();
+
+    Json::Value JBody = Json_Util::deserializeJson(strBody);
+    // 获取请求
+    if (JBody.empty())
+    {
+      ERR_LOG("messageGameHall, json parse failed, body: %s", strBody.c_str());
+      JBody["result"] = false;
+      JBody["reason"] = "请求信息解析失败";
+      ptrConnection->send(Json_Util::serializeJson(JBody));
+      return;
+    }
+
+    // 完成请求的处理 对战匹配 停止对战匹配
+
+    if (JBody["optype"].isNull())
+    {
+    }
+
+    uint64_t uid = ptrSession->getUser();
+    if (JBody["optype"].asString() == "match_start")
+    {
+      // 开始匹配
+      m_Matcher.addUser(uid);
+      JBody["result"] = true;
+      ptrConnection->send(Json_Util::serializeJson(JBody));
+    }
+    else if (JBody["optype"].asString() == "match_stop")
+    {
+      // 停止匹配
+      m_Matcher.removeUser(uid);
+      JBody["result"] = true;
+      ptrConnection->send(Json_Util::serializeJson(JBody));
+    }
+    else
+    {
+      m_Matcher.removeUser(uid);
+      JBody["optype"] = "unknown";
+      JBody["result"] = false;
+      ptrConnection->send(Json_Util::serializeJson(JBody));
+    }
+  }
+  //
   void messagecallback(websocketpp::connection_hdl hdl,
                        webSocketServer::message_ptr msg)
   {
-    webSocketServer::connection_ptr ptrConnet =
-        m_cScoketSever.get_con_from_hdl(hdl);
-    std::cout << "Message received: " << msg->get_payload() << std::endl;
-    std::string response = "Server received: " + msg->get_payload();
-    ptrConnet->send(response);
+    auto prtConnection = m_cScoketSever.get_con_from_hdl(hdl);
+    auto request = prtConnection->get_request();
+
+    std::string strUri = request.get_uri();
+    INFO_LOG("长连接建立, uri: %s", strUri.c_str());
+
+    if (strUri == "/hall") // 游戏大厅的长连接
+    {
+      messageGameHall(prtConnection, msg);
+    }
+    else if (strUri == "/room") // 游戏房间的长连接
+    {
+    }
   }
 
   void httpcallback(websocketpp::connection_hdl hdl)
