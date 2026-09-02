@@ -416,6 +416,18 @@ private:
 
   void closeGameRoom(webSocketServer::connection_ptr ptrConnection)
   {
+
+    auto ptrSession = getSessionByCookie(ptrConnection);
+    if (!ptrSession)
+    {
+      return;
+    }
+    // 从用户管理器中删除玩家的信息
+    m_OnlineManager.exitGameRoom(ptrSession->getUser());
+    // 更新 session 的过期时间
+    m_SessionManager.setSessionExpireTime(ptrSession->getSessionID(), kSessionTimeOut);
+    // 从游戏房间管理器中删除用户信息 当所有玩家都退出后，房间会被销毁
+    m_RoomManager.removeRoomUser(ptrSession->getUser());
   }
 
   void closecallback(websocketpp::connection_hdl hdl) // webSocket连接断开的处理
