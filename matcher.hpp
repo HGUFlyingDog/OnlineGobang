@@ -172,7 +172,8 @@ private:
 
             // 出队两个玩家 获得玩家的ID 和对应的连接信息
             uint64_t uid1, uid2;
-            uid1 = queue.popTwo(uid1, uid2);
+            queue.popTwo(uid1, uid2);
+
             if (uid1 == 0)
             {
                 ERR_LOG("用户状态异常 uid = %lu", uid1);
