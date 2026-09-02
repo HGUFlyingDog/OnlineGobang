@@ -321,6 +321,54 @@ private:
     m_SessionManager.setSessionExpireTime(ptrSession->getSessionID(), -1);
   }
 
+  void openGameRoom(webSocketServer::connection_ptr ptrConnection)
+  {
+    // 从游戏大厅退出，进入到游戏房间 此时游戏大厅的长连接会被关闭，需要手动移除删除的Session的逻辑
+    session_ptr ptrSession = getSessionByCookie(ptrConnection);
+
+    if (ptrSession.get() == nullptr)
+    {
+      return;
+    }
+
+    // 获取Session 检查是不是在其他的房间或者在大厅里面
+    uint64_t uid = ptrSession->getUser();
+    Json::Value JErrResp;
+    if (m_OnlineManager.isInGameHall(uid) || m_OnlineManager.isInGameRoom(uid))
+    {
+      JErrResp["optype"] = "room _ready";
+      JErrResp["return"] = false;
+      JErrResp["reason"] = "用户重复登录";
+      ptrConnection->send(Json_Util::serializeJson(JErrResp));
+
+      return;
+    }
+    // 判断是不是已经为用户创建了房间 这个房间是在用户匹配完成之后生成的
+    room_Ptr ptrRoom = m_RoomManager.getRoomByUserID(uid);
+    if (ptrRoom.get() == nullptr)
+    {
+      JErrResp["optype"] = "room _ready";
+      JErrResp["return"] = false;
+      JErrResp["reason"] = "没有找到玩家的房间信息";
+      ptrConnection->send(Json_Util::serializeJson(JErrResp));
+      return;
+    }
+
+    // 把用户设置到在线用户管理的游戏房间中
+
+    m_OnlineManager.enterGameRoom(uid, ptrConnection);
+
+    // 重置 session
+    m_SessionManager.setSessionExpireTime(ptrSession->getSessionID(), -1);
+
+    Json::Value JSuccessResp;
+    JSuccessResp["optype"] = "room _ready";
+    JSuccessResp["return"] = true;
+    JSuccessResp["reason"] = "房间准备完毕";
+    ptrConnection->send(Json_Util::serializeJson(JSuccessResp));
+    return;
+  }
+
   void opencallback(websocketpp::connection_hdl hdl) // 建立WebSocket长连接的回调函数
   {
     // 我们可以根据URi 来判断这个是游戏大厅的长连接请求还是游戏房间的长连接请求
