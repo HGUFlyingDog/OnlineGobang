@@ -10,7 +10,7 @@
 #include <jsoncpp/json/value.h>
 
 const std::string kWWWRoot = "./wwwroot";
-const int kSessionTimeOut = 30000;
+const int kSessionTimeOut = 300000;
 
 class gobangSever
 {
@@ -53,6 +53,30 @@ public:
   }
 
 private:
+  session_ptr getSessionByCookie(webSocketServer::connection_ptr ptrConnection)
+  {
+    std::string strCookie = ptrConnection->get_request_header("Cookie");
+    if (strCookie.empty())
+    {
+      handleHttpResp(ptrConnection, false,
+                     websocketpp::http::status_code::bad_request,
+                     "请求没有Cookie,请重新登陆");
+      return nullptr;
+    }
+    // 然后在Session里面找到用户相关的信息 如果找不到对应的Session的话
+    // 说明用户的登录已经过期了 需要重新登录
+    std::string strSSID = getValueFromCookie(strCookie, "SSID");
+
+    if (strSSID.empty())
+    {
+      handleHttpResp(ptrConnection, false,
+                     websocketpp::http::status_code::bad_request,
+                     "Cookie没有SSID,请重新登陆");
+      return nullptr;
+    }
+
+    return m_SessionManager.getSession(std::stoul(strSSID));
+  }
   // 处理静态的资源请求
   void staticFileHandler(webSocketServer::connection_ptr ptrConnection)
   {
@@ -204,31 +228,7 @@ private:
   // 获取用户信息
   void getUserInfo(webSocketServer::connection_ptr ptrConnection)
   {
-
-    // 获取用户信息前需要先校验用户的状态
-    // 从用户的Cookie获取相关的Session 如果没有说明用户没有登录 让客户端重新登陆
-    std::string strCookie = ptrConnection->get_request_header("Cookie");
-    if (strCookie.empty())
-    {
-      handleHttpResp(ptrConnection, false,
-                     websocketpp::http::status_code::bad_request,
-                     "请求没有Cookie,请重新登陆");
-      return;
-    }
-    // 然后在Session里面找到用户相关的信息 如果找不到对应的Session的话
-    // 说明用户的登录已经过期了 需要重新登录
-    std::string strSSID = getValueFromCookie(strCookie, "SSID");
-
-    if (strSSID.empty())
-    {
-      handleHttpResp(ptrConnection, false,
-                     websocketpp::http::status_code::bad_request,
-                     "Cookie没有SSID,请重新登陆");
-      return;
-    }
-    // 找到 用户信息之后 序列化返回给客户端 刷新用户的Session的过期时间
-
-    session_ptr ptrSession = m_SessionManager.getSession(std::stoul(strSSID));
+    session_ptr ptrSession = getSessionByCookie(ptrConnection);
 
     if (ptrSession.get() == nullptr)
     {
@@ -293,6 +293,7 @@ private:
       JErrResp["result"] = false;
       JErrResp["reason"] = "登陆过期, 请重新登陆";
       ptrConnection->send(Json_Util::serializeJson(JErrResp));
+      return;
     }
 
     uint64_t uid = ptrSession->getUser();
@@ -340,29 +341,7 @@ private:
   // 游戏大厅长连接断开
   void closeGameHall(webSocketServer::connection_ptr ptrConnection)
   {
-    // 从游戏大厅删除玩家
-    std::string strCookie = ptrConnection->get_request_header("Cookie");
-    if (strCookie.empty())
-    {
-      handleHttpResp(ptrConnection, false,
-                     websocketpp::http::status_code::bad_request,
-                     "请求没有Cookie,请重新登陆");
-      return;
-    }
-    // 然后在Session里面找到用户相关的信息 如果找不到对应的Session的话
-    // 说明用户的登录已经过期了 需要重新登录
-    std::string strSSID = getValueFromCookie(strCookie, "SSID");
-
-    if (strSSID.empty())
-    {
-      handleHttpResp(ptrConnection, false,
-                     websocketpp::http::status_code::bad_request,
-                     "Cookie没有SSID,请重新登陆");
-      return;
-    }
-    // 找到 用户信息之后 序列化返回给客户端 刷新用户的Session的过期时间
-
-    session_ptr ptrSession = m_SessionManager.getSession(std::stoul(strSSID));
+    session_ptr ptrSession = getSessionByCookie(ptrConnection);
 
     if (ptrSession.get() == nullptr)
     {
@@ -378,7 +357,7 @@ private:
 
     // session 恢复生命周期的管理
 
-    m_SessionManager.setSessionExpireTime(ptrSession->getSessionID(), 30000);
+    m_SessionManager.setSessionExpireTime(ptrSession->getSessionID(), kSessionTimeOut);
   }
 
   void closecallback(websocketpp::connection_hdl hdl) // webSocket连接断开的处理
@@ -423,6 +402,14 @@ private:
     }
 
     session_ptr ptrSession = m_SessionManager.getSession(std::stoul(strSSID));
+    if (!ptrSession)
+    {
+      JErrResp["optype"] = "hall_ready";
+      JErrResp["result"] = false;
+      JErrResp["reason"] = "Session失效请重新登录";
+      ptrConnection->send(Json_Util::serializeJson(JErrResp));
+      return;
+    }
 
     std::string strBody = msg->get_payload();
 
@@ -492,8 +479,8 @@ private:
     auto strUri = req.get_uri();
     auto strMethod = req.get_method();
 
-    INFO_LOG("httpcallback, method: %s, uri: %s", strMethod.c_str(),
-             strUri.c_str());
+    // INFO_LOG("httpcallback, method: %s, uri: %s", strMethod.c_str(),
+    //          strUri.c_str());
 
     if (strMethod == "POST" && strUri == "/reg")
     {
