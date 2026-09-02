@@ -126,7 +126,7 @@ public:
         return true;
     }
 
-    bool selectById(const uint64_t id, Json::Value &user)
+    bool selectById(const uint64_t id, Json::Value &OutUser)
     {
         MYSQL_RES *res = nullptr;
         {
@@ -149,14 +149,13 @@ public:
             return false;
         }
         MYSQL_ROW row = mysql_fetch_row(res);
-        user["id"] = std::stol(row[0]);
-        user["username"] = row[1];
-        user["score"] = std::stoi(row[2]);
-        user["total_count"] = std::stoi(row[3]);
-        user["win_count"] = std::stoi(row[4]);
+        OutUser["id"] = std::stol(row[0]);
+        OutUser["username"] = row[1];
+        OutUser["score"] = std::stoi(row[2]);
+        OutUser["total_count"] = std::stoi(row[3]);
+        OutUser["win_count"] = std::stoi(row[4]);
 
-        
-        return true;
+                return true;
     }
 
     bool win(const uint64_t id)
