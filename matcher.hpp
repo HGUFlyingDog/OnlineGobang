@@ -206,7 +206,7 @@ private:
 
             // 对玩家进行响应
             Json::Value JResp;
-            JResp["optype"] = "match_start";
+            JResp["optype"] = "match_success";
             JResp["result"] = true;
 
             std::string body = Json_Util::serializeJson(JResp);

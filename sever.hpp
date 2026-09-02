@@ -167,6 +167,7 @@ private:
     if (JRet.empty())
     {
       ptrConnection->set_status(websocketpp::http::status_code::bad_request);
+      return;
     }
     if (JRet["username"].isNull() || JRet["password"].isNull())
     {
@@ -225,7 +226,7 @@ private:
     return std::string();
   }
 
-  // 获取用户信息
+  // 获取用户信息 在进入游戏大厅加载用户信息时调用
   void getUserInfo(webSocketServer::connection_ptr ptrConnection)
   {
     session_ptr ptrSession = getSessionByCookie(ptrConnection);
@@ -365,6 +366,11 @@ private:
     JSuccessResp["optype"] = "room _ready";
     JSuccessResp["return"] = true;
     JSuccessResp["reason"] = "房间准备完毕";
+    JSuccessResp["room_id"] = ptrRoom->getRoomID();
+    JSuccessResp["uid"] = ptrSession->getUser();
+    JSuccessResp["white_id"] = ptrRoom->getWhiteID();
+    JSuccessResp["black_id"] = ptrRoom->getBlackID();
+
     ptrConnection->send(Json_Util::serializeJson(JSuccessResp));
     return;
   }
@@ -408,6 +414,10 @@ private:
     m_SessionManager.setSessionExpireTime(ptrSession->getSessionID(), kSessionTimeOut);
   }
 
+  void closeGameRoom(webSocketServer::connection_ptr ptrConnection)
+  {
+  }
+
   void closecallback(websocketpp::connection_hdl hdl) // webSocket连接断开的处理
   {
     // 区分是游戏游戏房间断开还是游戏大厅断开
@@ -423,6 +433,7 @@ private:
     }
     else if (strUri == "/room") // 游戏房间的长连接
     {
+      closeGameRoom(prtConnection);
     }
   }
 
