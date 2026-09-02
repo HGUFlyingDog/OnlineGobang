@@ -440,14 +440,14 @@ public:
     void removeRoomUser(uint64_t nUserID)
     {
         room_Ptr ptrRoom = getRoomByUserID(nUserID); // 这里已经进行加锁
-        if(ptrRoom.get() == nullptr)
+        if (ptrRoom.get() == nullptr)
         {
             return;
         }
         // 处理玩家的退出功能
         ptrRoom->handleExit(nUserID);
 
-        if(ptrRoom->getPlayerCount() ==  0 ) //玩家都退出了就销毁房间
+        if (ptrRoom->getPlayerCount() == 0) // 玩家都退出了就销毁房间
         {
             removeRoom(ptrRoom->getRoomID());
         }
