@@ -87,6 +87,37 @@ public:
         }
     }
 
+    void handleRequest(Json::Value &Jreq)
+    {
+        Json::Value JResp = Jreq;
+        std::cout << Json_Util::serializeJson(Jreq) << std::endl;
+
+        uint64_t roomID = JResp["room_id"].asUInt64();
+        if (roomID != m_nRoomID)
+        {
+            JResp["opType"] = Jreq["opType"];
+            JResp["result"] = false;
+            JResp["reason"] = "房间号不匹配,当前房间号为" + std::to_string(m_nRoomID) + "传入的房间号为" + std::to_string(roomID);
+            return;
+        }
+
+        if (Jreq["opType"] == "putChess")
+        {
+            JResp = handleChess(Jreq);
+            m_eStatus = roomStatus::GameFinshed;
+        }
+        else if (Jreq["opType"] == "chat")
+        {
+            JResp = handleChat(Jreq);
+        }
+        else
+        {
+            std::cout << "不支持的操作类型:" << Jreq["opType"].asString() << std::endl;
+        }
+
+        broadCast(JResp);
+    }
+
     // AI:get函数的生成使用了AI自动补全
     uint16_t getRoomID() const
     {
@@ -252,37 +283,6 @@ private:
         // 广播消息
         JResp["result"] = true;
         return JResp;
-    }
-
-    void handleRequest(Json::Value &Jreq)
-    {
-        Json::Value JResp = Jreq;
-        std::cout << Json_Util::serializeJson(Jreq) << std::endl;
-
-        uint64_t roomID = JResp["room_id"].asUInt64();
-        if (roomID != m_nRoomID)
-        {
-            JResp["opType"] = Jreq["opType"];
-            JResp["result"] = false;
-            JResp["reason"] = "房间号不匹配,当前房间号为" + std::to_string(m_nRoomID) + "传入的房间号为" + std::to_string(roomID);
-            return;
-        }
-
-        if (Jreq["opType"] == "putChess")
-        {
-            JResp = handleChess(Jreq);
-            m_eStatus = roomStatus::GameFinshed;
-        }
-        else if (Jreq["opType"] == "chat")
-        {
-            JResp = handleChat(Jreq);
-        }
-        else
-        {
-            std::cout << "不支持的操作类型:" << Jreq["opType"].asString() << std::endl;
-        }
-
-        broadCast(JResp);
     }
 
     void broadCast(Json::Value &Jrsp)
