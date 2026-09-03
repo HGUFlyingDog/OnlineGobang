@@ -208,6 +208,9 @@ private:
             Json::Value JResp;
             JResp["optype"] = "match_success";
             JResp["result"] = true;
+            JResp["room_id"] = ptrRoom->getRoomID();
+            JResp["white_id"] = ptrRoom->getWhiteID();
+            JResp["black_id"] = ptrRoom->getBlackID();
 
             std::string body = Json_Util::serializeJson(JResp);
             ptrConnect1->send(body);

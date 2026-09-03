@@ -337,8 +337,8 @@ private:
     Json::Value JErrResp;
     if (m_OnlineManager.isInGameHall(uid) || m_OnlineManager.isInGameRoom(uid))
     {
-      JErrResp["optype"] = "room _ready";
-      JErrResp["return"] = false;
+      JErrResp["optype"] = "room_ready";
+      JErrResp["result"] = false;
       JErrResp["reason"] = "用户重复登录";
       ptrConnection->send(Json_Util::serializeJson(JErrResp));
 
@@ -348,8 +348,8 @@ private:
     room_Ptr ptrRoom = m_RoomManager.getRoomByUserID(uid);
     if (ptrRoom.get() == nullptr)
     {
-      JErrResp["optype"] = "room _ready";
-      JErrResp["return"] = false;
+      JErrResp["optype"] = "room_ready";
+      JErrResp["result"] = false;
       JErrResp["reason"] = "没有找到玩家的房间信息";
       ptrConnection->send(Json_Util::serializeJson(JErrResp));
       return;
@@ -363,8 +363,8 @@ private:
     m_SessionManager.setSessionExpireTime(ptrSession->getSessionID(), -1);
 
     Json::Value JSuccessResp;
-    JSuccessResp["optype"] = "room _ready";
-    JSuccessResp["return"] = true;
+    JSuccessResp["optype"] = "room_ready";
+    JSuccessResp["result"] = true;
     JSuccessResp["reason"] = "房间准备完毕";
     JSuccessResp["room_id"] = ptrRoom->getRoomID();
     JSuccessResp["uid"] = ptrSession->getUser();
@@ -524,6 +524,26 @@ private:
       ptrConnection->send(Json_Util::serializeJson(JBody));
     }
   }
+
+  void messageGameRoom(webSocketServer::connection_ptr ptrConnection, webSocketServer::message_ptr msg)
+  {
+    auto ptrSession = getSessionByCookie(ptrConnection);
+    if (!ptrSession)
+    {
+      return;
+    }
+    auto uid = ptrSession->getUser();
+    room_Ptr ptrRoom = m_RoomManager.getRoomByUserID(uid);
+
+    if (!ptrRoom)
+    {
+      return;
+    }
+
+    auto JReqBody = Json_Util::deserializeJson(msg->get_payload());
+
+    ptrRoom->handleRequest(JReqBody);
+  }
   //
   void messagecallback(websocketpp::connection_hdl hdl,
                        webSocketServer::message_ptr msg)
@@ -540,6 +560,7 @@ private:
     }
     else if (strUri == "/room") // 游戏房间的长连接
     {
+      messageGameRoom(prtConnection, msg);
     }
   }
 

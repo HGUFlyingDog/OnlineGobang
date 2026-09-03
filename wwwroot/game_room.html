@@ -140,8 +140,8 @@
 
       var ws_hdl = new WebSocket(ws_url);
 
-      window.onbeforeunload() = function () {
-        ws_hdl.close;
+      window.onbeforeunload = function () {
+        ws_hdl.close();
       };
 
       ws_hdl.onclose = function () {

@@ -105,7 +105,7 @@
         if (rsp["optype"] == "hall_ready") {
           alert("游戏大厅建立成功");
         } else if (rsp["optype"] == "match_success") {
-          alert(rsp["匹配成功"]);
+          alert("匹配成功");
           location.replace("/game_room.html");
         } else if (rsp["optype"] == "match_start") {
           console.log("玩家进入匹配队列");
