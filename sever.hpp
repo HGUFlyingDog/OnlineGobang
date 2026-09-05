@@ -109,7 +109,24 @@ private:
       ptrConnection->set_status(websocketpp::http::status_code::ok);
       ptrConnection->append_header("Content-Length",
                                    std::to_string(strBody.size()));
-      ptrConnection->append_header("Content-Type", "text/html");
+      // 根据文件扩展名设置正确的 Content-Type
+      std::string strContentType = "text/html";
+      std::string strExt = strFileName.substr(strFileName.find_last_of('.') + 1);
+      if (strExt == "css")
+        strContentType = "text/css";
+      else if (strExt == "js")
+        strContentType = "application/javascript";
+      else if (strExt == "jpeg" || strExt == "jpg")
+        strContentType = "image/jpeg";
+      else if (strExt == "png")
+        strContentType = "image/png";
+      else if (strExt == "gif")
+        strContentType = "image/gif";
+      else if (strExt == "ico")
+        strContentType = "image/x-icon";
+      else if (strExt == "json")
+        strContentType = "application/json";
+      ptrConnection->append_header("Content-Type", strContentType);
     }
   }
 
@@ -389,6 +406,7 @@ private:
     }
     else if (strUri == "/room") // 游戏房间的长连接
     {
+      openGameRoom(prtConnection);
     }
   }
 
